@@ -1,0 +1,186 @@
+{% extends 'sales/base.html' %}
+
+{% block title %}달력 - 붕어빵 관리{% endblock %}
+{% block header %}판매 달력 ({{ year }}년 {{ month }}월){% endblock %}
+
+{% block extra_css %}
+<style>
+    .calendar-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .calendar-nav a {
+        padding: 10px 20px;
+        background: #4CAF50;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+    }
+
+    .calendar-nav h2 {
+        font-size: 24px;
+    }
+
+    .calendar {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .calendar-header {
+        text-align: center;
+        font-weight: bold;
+        padding: 10px;
+        background: #667eea;
+        color: white;
+        border-radius: 5px;
+    }
+
+    .calendar-day {
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        padding: 10px;
+        min-height: 100px;
+        background: white;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .calendar-day:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        border-color: #4CAF50;
+    }
+
+    .calendar-day.empty {
+        background: #f9f9f9;
+        cursor: default;
+        pointer-events: none;
+    }
+
+    .calendar-day.empty:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: #e0e0e0;
+    }
+
+    .day-number {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .day-stats {
+        font-size: 12px;
+        color: #666;
+    }
+
+    .day-stats div {
+        margin: 2px 0;
+    }
+
+    @media (max-width: 768px) {
+        .calendar {
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .calendar-day {
+            min-height: 80px;
+            padding: 5px;
+            font-size: 11px;
+        }
+
+        .day-number {
+            font-size: 14px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calendar-nav">
+    {% if month == 1 %}
+        <a href="?year={{ year|add:'-1' }}&month=12">← 이전 달</a>
+    {% else %}
+        <a href="?year={{ year }}&month={{ month|add:'-1' }}">← 이전 달</a>
+    {% endif %}
+
+    <h2>{{ year }}년 {{ month }}월</h2>
+
+    {% if month == 12 %}
+        <a href="?year={{ year|add:'1' }}&month=1">다음 달 →</a>
+    {% else %}
+        <a href="?year={{ year }}&month={{ month|add:'1' }}">다음 달 →</a>
+    {% endif %}
+</div>
+
+<div class="calendar" id="calendar">
+    <div class="calendar-header">일</div>
+    <div class="calendar-header">월</div>
+    <div class="calendar-header">화</div>
+    <div class="calendar-header">수</div>
+    <div class="calendar-header">목</div>
+    <div class="calendar-header">금</div>
+    <div class="calendar-header">토</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startDate = new Date({{ year }}, {{ month }} - 1, 1);
+    const endDate = new Date({{ year }}, {{ month }}, 0);
+    const daysInMonth = endDate.getDate();
+    const firstDayOfWeek = startDate.getDay();
+
+    const calendarData = JSON.parse('{{ calendar_data|escapejs }}');
+    console.log('Calendar Data:', calendarData); // 디버깅용
+
+    const calendar = document.getElementById('calendar');
+
+    for (let i = 0; i < firstDayOfWeek; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'calendar-day empty';
+        calendar.appendChild(emptyDay);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+
+        const dayNumber = document.createElement('div');
+        dayNumber.className = 'day-number';
+        dayNumber.textContent = day;
+        dayDiv.appendChild(dayNumber);
+
+        // 모든 날짜에 클릭 이벤트 추가
+        dayDiv.onclick = function() {
+            location.href = `/day/{{ year }}/{{ month }}/${day}/`;
+        };
+        dayDiv.style.cursor = 'pointer';
+
+        const stats = document.createElement('div');
+        stats.className = 'day-stats';
+
+        if (calendarData[day] && calendarData[day].qty > 0) {
+            stats.innerHTML = `
+                <div>판매: ${calendarData[day].qty}개</div>
+                <div>매출: ${Math.round(calendarData[day].revenue).toLocaleString()}원</div>
+                <div>마진: ${Math.round(calendarData[day].margin).toLocaleString()}원</div>
+            `;
+        } else {
+            stats.innerHTML = `<div style="color: #999; font-size: 12px;">클릭하여 판매 입력</div>`;
+        }
+
+        dayDiv.appendChild(stats);
+
+        calendar.appendChild(dayDiv);
+    }
+});
+</script>
+{% endblock %}

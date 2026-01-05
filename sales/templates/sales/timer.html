@@ -1,0 +1,285 @@
+{% extends 'sales/base.html' %}
+
+{% block title %}타이머 - 붕어빵 관리{% endblock %}
+{% block header %}붕어빵 타이머{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timer-container {
+        text-align: center;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .timer-display {
+        font-size: 72px;
+        font-weight: bold;
+        color: #4CAF50;
+        margin: 40px 0;
+        font-family: 'Courier New', monospace;
+    }
+
+    .timer-presets {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 10px;
+        margin-bottom: 30px;
+    }
+
+    .preset-btn {
+        padding: 15px;
+        font-size: 18px;
+        background: #2196F3;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .preset-btn:hover {
+        background: #0b7dda;
+    }
+
+    .timer-controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .control-btn {
+        padding: 20px;
+        font-size: 20px;
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .start-btn {
+        background: #4CAF50;
+        color: white;
+    }
+
+    .start-btn:hover {
+        background: #45a049;
+    }
+
+    .stop-btn {
+        background: #f44336;
+        color: white;
+    }
+
+    .stop-btn:hover {
+        background: #da190b;
+    }
+
+    .reset-btn {
+        background: #FF9800;
+        color: white;
+    }
+
+    .reset-btn:hover {
+        background: #e68900;
+    }
+
+    .custom-input {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f5f5f5;
+        border-radius: 10px;
+    }
+
+    .custom-input h3 {
+        margin-bottom: 15px;
+    }
+
+    .custom-input input {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+
+    .alarm {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #f44336;
+        color: white;
+        padding: 40px;
+        border-radius: 10px;
+        font-size: 32px;
+        font-weight: bold;
+        z-index: 1000;
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="timer-container">
+    <div class="timer-display" id="timerDisplay">00:00</div>
+
+    <div class="timer-presets">
+        <button class="preset-btn" onclick="setTimer(180)">3분</button>
+        <button class="preset-btn" onclick="setTimer(240)">4분</button>
+        <button class="preset-btn" onclick="setTimer(300)">5분</button>
+        <button class="preset-btn" onclick="setTimer(360)">6분</button>
+    </div>
+
+    <div class="timer-controls">
+        <button class="control-btn start-btn" onclick="startTimer()">시작</button>
+        <button class="control-btn stop-btn" onclick="stopTimer()">정지</button>
+        <button class="control-btn reset-btn" onclick="resetTimer()">리셋</button>
+    </div>
+
+    <div class="custom-input">
+        <h3>커스텀 시간 설정</h3>
+        <input type="number" id="customMinutes" placeholder="분" min="0">
+        <input type="number" id="customSeconds" placeholder="초" min="0" max="59">
+        <button class="btn" onclick="setCustomTimer()">설정</button>
+    </div>
+</div>
+
+<div class="alarm" id="alarm">
+    시간 종료!
+    <div style="font-size: 16px; margin-top: 10px;">
+        <button onclick="closeAlarm()" style="padding: 10px 20px; background: white; color: #f44336; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">확인</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let timerInterval;
+let remainingSeconds = 0;
+let isRunning = false;
+let startTime = null;
+
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function updateDisplay() {
+    document.getElementById('timerDisplay').textContent = formatTime(remainingSeconds);
+}
+
+function setTimer(seconds) {
+    remainingSeconds = seconds;
+    updateDisplay();
+    stopTimer();
+}
+
+function setCustomTimer() {
+    const minutes = parseInt(document.getElementById('customMinutes').value) || 0;
+    const seconds = parseInt(document.getElementById('customSeconds').value) || 0;
+    setTimer(minutes * 60 + seconds);
+}
+
+function startTimer() {
+    if (isRunning || remainingSeconds <= 0) return;
+
+    isRunning = true;
+    startTime = new Date();
+
+    timerInterval = setInterval(() => {
+        remainingSeconds--;
+        updateDisplay();
+
+        if (remainingSeconds <= 0) {
+            stopTimer();
+            showAlarm();
+            playSound();
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    isRunning = false;
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+function resetTimer() {
+    stopTimer();
+    remainingSeconds = 0;
+    updateDisplay();
+}
+
+function showAlarm() {
+    document.getElementById('alarm').style.display = 'block';
+}
+
+function closeAlarm() {
+    document.getElementById('alarm').style.display = 'none';
+}
+
+function playSound() {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+
+    setTimeout(() => {
+        const oscillator2 = audioContext.createOscillator();
+        const gainNode2 = audioContext.createGain();
+
+        oscillator2.connect(gainNode2);
+        gainNode2.connect(audioContext.destination);
+
+        oscillator2.frequency.value = 600;
+        oscillator2.type = 'sine';
+
+        gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+        oscillator2.start(audioContext.currentTime);
+        oscillator2.stop(audioContext.currentTime + 0.5);
+    }, 500);
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+        e.preventDefault();
+        if (isRunning) {
+            stopTimer();
+        } else {
+            startTimer();
+        }
+    } else if (e.code === 'KeyR') {
+        resetTimer();
+    }
+});
+</script>
+{% endblock %}

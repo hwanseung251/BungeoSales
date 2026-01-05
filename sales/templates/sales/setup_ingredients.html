@@ -1,0 +1,136 @@
+{% extends 'sales/base.html' %}
+
+{% block title %}재료 설정 - 붕어빵 관리{% endblock %}
+{% block header %}재료 설정{% endblock %}
+
+{% block extra_css %}
+<style>
+    .setup-nav {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .setup-nav a {
+        padding: 10px 20px;
+        background: #e0e0e0;
+        color: #333;
+        text-decoration: none;
+        border-radius: 5px;
+    }
+
+    .setup-nav a.active {
+        background: #4CAF50;
+        color: white;
+    }
+
+    .form-section {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        margin-bottom: 20px;
+    }
+
+    .form-section h2 {
+        font-size: 20px;
+        margin-bottom: 15px;
+        color: #333;
+        border-bottom: 2px solid #4CAF50;
+        padding-bottom: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+
+    .items-list {
+        display: grid;
+        gap: 15px;
+    }
+
+    .item-card {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 10px;
+        padding: 15px;
+        background: #f9f9f9;
+        border-radius: 5px;
+        align-items: center;
+    }
+
+    .item-card.header {
+        background: #4CAF50;
+        color: white;
+        font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+        .item-card {
+            grid-template-columns: 1fr;
+        }
+
+        .item-card.header {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="setup-nav">
+    <a href="{% url 'setup_items' %}">품목 설정</a>
+    <a href="{% url 'setup_ingredients' %}" class="active">재료 설정</a>
+    <a href="{% url 'setup_recipes' %}">레시피 설정</a>
+</div>
+
+<div class="form-section">
+    <h2>재료 추가</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="name">재료명</label>
+            <input type="text" id="name" name="name" placeholder="예: 팥앙금" required>
+        </div>
+        <div class="form-group">
+            <label for="cost_per_gram">g당 단가 (원)</label>
+            <input type="number" id="cost_per_gram" name="cost_per_gram" placeholder="예: 2.5" step="0.01" required>
+        </div>
+        <button type="submit" class="btn">추가</button>
+    </form>
+</div>
+
+<div class="form-section">
+    <h2>등록된 재료</h2>
+    <div class="items-list">
+        <div class="item-card header">
+            <div>재료명</div>
+            <div>g당 단가</div>
+        </div>
+        {% for ingredient in ingredients %}
+        <div class="item-card">
+            <div>{{ ingredient.name }}</div>
+            <div>{{ ingredient.cost_per_gram }}원/g</div>
+        </div>
+        {% empty %}
+        <div style="text-align: center; padding: 20px; color: #999;">
+            등록된 재료가 없습니다.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
